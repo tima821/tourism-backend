@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class VerificationCode extends Model
 {
-    protected $fillable = ['email', 'code', 'verified'];
+    protected $fillable = ['email', 'code', 'verified', 'expire_at'];
 }

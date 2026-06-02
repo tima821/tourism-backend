@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ForgetPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\VerifyAccountRequest;
 use App\Models\User;
 use App\Models\VerificationCode;
@@ -19,23 +21,28 @@ class AuthController extends Controller
     {
         // 1. إنشاء المستخدم
         $user = User::create([
-            'username'  => $request->username,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
-            'phone'     => $request->phone,
-            'user_type' => 'customer',
-            'status'    => 'pending',
+            'username'                      => $request->username,
+            'email'                         => $request->email,
+            'password'                      => Hash::make($request->password),
+            'phone'                         => $request->phone,
+            'user_type'                     => 'customer',
+            'status'                        => 'pending',
+            'verification_code'             => 123456,        // ← أضف
+            'verification_code_expires_at'  => now()->addMinutes(15), // ← أضف
         ]);
 
-        // 2. توليد وحفظ الكود
-        $code = mt_rand(100000, 999999);
+        // ⚠️ TODO: احذف السطر التالي آخر المشروع
+        $code = 123456;
+        // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
+        // $code = mt_rand(100000, 999999);
+
         VerificationCode::create([
             'email' => $user->email,
             'code'  => $code,
         ]);
 
-        // 3. إرسال الإيميل
-        Mail::to($user->email)->send(new VerifyEmailMail($code));
+        // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
+        // Mail::to($user->email)->send(new VerifyEmailMail($code));
 
         return response()->json([
             'status'  => true,
@@ -45,13 +52,8 @@ class AuthController extends Controller
     }
 
 
-
-
-
     public function verifyAccount(VerifyAccountRequest $request)
     {
-
-        // 2. البحث عن الكود في جدول verification_codes
         $check = VerificationCode::where('email', $request->email)
             ->where('code', $request->code)
             ->first();
@@ -63,13 +65,11 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // 3. إذا الكود صحيح، نقوم بتفعيل المستخدم
         $user = User::where('email', $request->email)->first();
         $user->update([
             'status' => 'active'
         ]);
 
-        // 4. حذف الكود من الجدول (لأنه استخدم لمرة واحدة فقط)
         $check->delete();
 
         return response()->json([
@@ -81,7 +81,6 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        // 1. محاولة مطابقة البيانات
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'status'  => false,
@@ -89,18 +88,15 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // 2. جلب بيانات المستخدم
         $user = User::where('email', $request->email)->firstOrFail();
 
-        // 3. الخطوة الاحترافية: التحقق من حالة الحساب
         if ($user->status !== 'active') {
             return response()->json([
                 'status'  => false,
                 'message' => 'حسابك غير مفعل، يرجى إدخال كود التحقق أولاً'
-            ], 403); // كود 403 يعني Forbidden (ممنوع الدخول)
+            ], 403);
         }
 
-        // 4. إصدار التوكن
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -112,10 +108,8 @@ class AuthController extends Controller
     }
 
 
-
     public function profile(Request $request)
     {
-        // هذه الدالة ترجع بيانات المستخدم صاحب التوكن الحالي
         return response()->json([
             'status' => true,
             'user'   => $request->user()
@@ -124,71 +118,86 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $user = $request->user();
-
-        if (! $user || ! $user->currentAccessToken()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'لم يتم العثور على الجلسة الحالية أو إنك غير مسجل دخول.',
-            ], 401);
-        }
-
-        $user->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'status'  => true,
-            'message' => 'تم تسجيل الخروج بنجاح.',
+            'message' => 'تم تسجيل الخروج بنجاح',
         ], 200);
     }
 
 
-       public function ForgetPassword(Request $request)
+    public function forgetPassword(ForgetPasswordRequest $request)
     {
-        $request->validate(['email' => 'required|email|exists:users,email']);
-        $code = rand(100000, 9999999);
-        VerificationCode::cerate(['email' => $request->email, 'code' => $code]);
-        Mail::to($request->email)->send(new VerifyEmailMail($code));
-        return response()->json(['message' => 'reset code send'], 200);
-    }
+        VerificationCode::where('email', $request->email)->delete();
 
-    public function VerifyCode(VerifyAccountRequest $request)
+        // ⚠️ TODO: احذف السطر التالي آخر المشروع
+        $code = 123456;
+        // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
+        // $code = mt_rand(100000, 999999);
 
-{
-    $data = $request->validated();
-    $reset = VerificationCode::where('email', $data['email'])
-                  ->where('code', $data['code'])
-                  ->first();
-
-    if (!$reset) {
-        return response()->json(['message' => 'Invalid code'], 400);
-    }
-
-    $reset->update(['verified' => true]);
-
-    return response()->json(['message' => 'Code verified'], 200);
-}
-
-    public function ResetPassword(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|min6'
+        VerificationCode::create([
+            'email'     => $request->email,
+            'code'      => $code,
+            'verified'  => false,
+            'expire_at' => now()->addMinutes(15),
         ]);
+
+        // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
+        // Mail::to($request->email)->send(new VerifyEmailMail($code));
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم إرسال كود إعادة التعيين بنجاح، الكود صالح لمدة 15 دقيقة.'
+        ], 200);
+    }
+
+    public function verifyCode(VerifyAccountRequest $request)
+    {
+        $data = $request->validated();
+
+        $reset = VerificationCode::where('email', $data['email'])
+            ->where('code', $data['code'])
+            ->where('expire_at', '>', now())
+            ->first();
+
+        if (!$reset) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'الكود غير صحيح أو انتهت صلاحيته'
+            ], 400);
+        }
+
+        $reset->update(['verified' => true]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم التحقق من الكود بنجاح، يمكنك الآن تعيين كلمة مرور جديدة'
+        ], 200);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
         $reset = VerificationCode::where('email', $request->email)
             ->where('verified', true)
             ->first();
 
         if (!$reset) {
-            return response()->json(['message' => 'Code not verified'], 400);
+            return response()->json([
+                'status'  => false,
+                'message' => 'لم يتم التحقق من الكود بعد، أو الطلب غير مصرح به'
+            ], 403);
         }
 
-        User::where('email', $request->email)
-            ->update(['password' => bcrypt($request->password)]);
+        User::where('email', $request->email)->update([
+            'password' => Hash::make($request->password),
+        ]);
 
         $reset->delete();
-        return response()->json(['message' => 'Password reset successfully'], 200);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم إعادة تعيين كلمة المرور بنجاح'
+        ], 200);
     }
-
-
 }
-

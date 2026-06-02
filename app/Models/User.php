@@ -25,6 +25,8 @@ class User extends Authenticatable
         'user_type',
         'phone',
         'status',
+        'verification_code',
+        'verification_code_expires_at',
     ];
 
     /**

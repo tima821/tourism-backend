@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('phone', 20)->nullable();
             $table->string('password');
             $table->string('status', 50)->default('pending');
+
+            // === حقول كود التحقق ===
+            $table->string('verification_code', 6)->nullable();        // الكود من 1 إلى 6 خانات
+            $table->timestamp('verification_code_expires_at')->nullable(); // وقت انتهاء الصلاحية
+
             $table->rememberToken();
             $table->timestamps();
         });
