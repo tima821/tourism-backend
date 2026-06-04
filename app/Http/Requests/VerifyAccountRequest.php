@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class VerifyAccountRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'email' => 'required|email|exists:users,email',
+            'code'  => 'required|numeric',
+        ];
+    }
+
+
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'يرجى إدخال البريد الإلكتروني.',
+            'email.exists'   => 'هذا البريد غير مسجل لدينا.',
+            'code.required'  => 'حقل الكود إلزامي.',
+            'code.numeric'   => 'يجب أن يكون الكود أرقاماً فقط.',
+        ];
+    }
+}
