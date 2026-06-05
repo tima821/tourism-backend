@@ -35,12 +35,11 @@ class AuthController extends Controller
         $code = 123456;
         // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
         // $code = mt_rand(100000, 999999);
-
-        VerificationCode::create([
-            'email' => $user->email,
-            'code'  => $code,
-             // ⚠️
-             'expire_at' => now()->addMinutes(15),
+   VerificationCode::create([
+            'email'     => $user->email,
+            'code'      => $code,
+            'verified'  => false,
+            'expire_at' => now()->addMinutes(15),
         ]);
 
         // ⚠️ TODO: فك التعليق عن السطر التالي آخر المشروع
@@ -54,12 +53,13 @@ class AuthController extends Controller
     }
 
 
+   
     public function verifyAccount(VerifyAccountRequest $request)
     {
+        // ✅ تم إضافة التحقق من انتهاء صلاحية الكود
         $check = VerificationCode::where('email', $request->email)
             ->where('code', $request->code)
-             // ⚠️
-             ->where('expire_at', '>', now())
+            ->where('expire_at', '>', now())
             ->first();
 
         if (!$check) {
@@ -74,7 +74,10 @@ class AuthController extends Controller
             'status' => 'active'
         ]);
 
-        $check->delete();
+        
+        // ✅ حذف كل الأكواد المرتبطة بهذا الإيميل وليس فقط الكود الحالي
+        VerificationCode::where('email', $request->email)->delete();
+
 
         return response()->json([
             'status'  => true,
@@ -85,16 +88,19 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        if (!Auth::attempt($request->only('email', 'password'))) {
+       
+        // ✅ تم تحسين منطق login: التحقق من المستخدم أولاً بدون Auth::attempt
+        // لتجنب تسجيل الدخول المؤقت لحسابات غير مفعلة
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status'  => false,
                 'message' => 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
-
-        if ($user->status !== 'active') {
+          if ($user->status !== 'active') {
             return response()->json([
                 'status'  => false,
                 'message' => 'حسابك غير مفعل، يرجى إدخال كود التحقق أولاً'
@@ -107,16 +113,20 @@ class AuthController extends Controller
             'status'  => true,
             'message' => 'تم تسجيل الدخول بنجاح',
             'user'    => $user,
-            'token'   => $token
+            'token'   => $token,
+            // ✅ إضافة role صراحةً في الـ response لاستخدامه في الـ Frontend
+            'role'    => $user->user_type,
         ], 200);
+    
     }
 
-
-    public function profile(Request $request)
+public function profile(Request $request)
     {
         return response()->json([
             'status' => true,
-            'user'   => $request->user()
+            'user'   => $request->user(),
+            // ✅ إضافة role في profile أيضاً
+            'role'   => $request->user()->user_type,
         ]);
     }
 
@@ -180,10 +190,13 @@ class AuthController extends Controller
         ], 200);
     }
 
+   
     public function resetPassword(ResetPasswordRequest $request)
     {
+        // ✅ تم إضافة التحقق من انتهاء الصلاحية
         $reset = VerificationCode::where('email', $request->email)
             ->where('verified', true)
+            ->where('expire_at', '>', now())
             ->first();
 
         if (!$reset) {

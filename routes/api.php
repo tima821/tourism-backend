@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // مسارات الرحلات
+Route::get('/trips/details', [TripController::class, 'indexWithDetails']);
 Route::apiResource('trips', TripController::class);
+
 
 // مسارات المستخدم
 Route::get('user', function (Request $request) {

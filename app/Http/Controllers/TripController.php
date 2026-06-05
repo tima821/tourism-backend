@@ -33,6 +33,8 @@ class TripController extends Controller
     // عرض تفاصيل رحلة معينة
     public function show(Trip $trip)
     {
+         // تحميل العلاقات مع الرحلة
+    $trip->load('bookings');
         return response()->json([
             'status' => true,
             'data'   => $trip
@@ -61,4 +63,13 @@ class TripController extends Controller
             'message' => 'تم حذف الرحلة بنجاح'
         ], 200);
     }
+    // استعراض الرحلات مع التفاصيل
+public function indexWithDetails()
+{
+      $trips = Trip::with('bookings')->get(); 
+    return response()->json([
+        'status' => true,
+        'data'   => $trips
+    ], 200);
+}
 }
