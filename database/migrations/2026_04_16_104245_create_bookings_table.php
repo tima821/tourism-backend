@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('trip_id')->constrained('trips');
             $table->string('booking_type', 50);
             $table->string('age_category', 50);
+            $table->integer('seats_count')->default(1);
             $table->integer('hotel_rooms')->default(0);
             $table->string('national_id', 50);
             $table->string('passport_number', 50)->nullable();

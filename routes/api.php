@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripRequestController;
 use Illuminate\Http\Request;
@@ -23,16 +24,21 @@ Route::post('forget-password', [AuthController::class, 'forgetPassword']);
 Route::post('verify-code', [AuthController::class, 'verifyCode']);
 Route::post('reset-password', [AuthController::class, 'resetPassword']);
 
-// خيارات طلب الرحلة (متاحة بدون تسجيل دخول)
+// خيارات (متاحة بدون تسجيل دخول)
 Route::get('trip-request-types', [TripRequestController::class, 'getRequestTypes']);
+Route::get('booking-types', [BookingController::class, 'getBookingTypes']);
 
 // مسارات محمية بـ auth
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('profile', [AuthController::class, 'profile']);
     Route::post('logout', [AuthController::class, 'logout']);
 
-    // مسارات طلبات الرحلات (المستخدم المسجل فقط)
+    // مسارات طلبات الرحلات
     Route::post('trip-requests', [TripRequestController::class, 'store']);
     Route::get('trip-requests/{id}', [TripRequestController::class, 'show']);
     Route::get('my-trip-requests', [TripRequestController::class, 'myRequests']);
+
+    // مسارات الحجوزات
+    Route::post('bookings', [BookingController::class, 'store']);
+    Route::get('my-bookings', [BookingController::class, 'myBookings']);
 });
